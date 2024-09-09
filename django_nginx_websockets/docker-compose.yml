@@ -1,0 +1,57 @@
+# deployment/docker-compose.yml
+
+version: '3'
+
+services:
+  web:
+    image: omkardevabattula/nginxwebsockets:v2  # Use the image from Docker Hub
+    env_file:
+      - .env
+    # environment:
+    #   - "DJANGO_SETTINGS_MODULE=django_project.settings"
+    volumes:
+      - static_volume:/app/staticfiles  # Share the static files
+      - media_volume:/app/media    # Share the media files
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    networks:
+      - django-network
+    restart: always
+
+  db:
+    image: postgres:13
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - django-network
+    restart: always
+  nginx:
+    build:
+      context: ./nginx
+    volumes:
+      - static_volume:/app/staticfiles  # Use shared static files
+      - media_volume:/app/media    # Use shared media files
+    ports:
+      - "80:80"
+    depends_on:
+      - web
+    networks:
+      - django-network
+    restart: always
+  redis:
+    image: redis:alpine
+    networks:
+      - django-network
+    restart: always    
+
+volumes:
+  postgres_data:
+  static_volume:  # Volume to share static files between Django and Nginx
+  media_volume:   # Volume to share media files between Django and Nginx
+networks:
+  django-network:
